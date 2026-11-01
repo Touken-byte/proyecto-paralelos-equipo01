@@ -35,9 +35,12 @@ NOMBRES = {"cortafuego": "Cortafuego", "pozo": "Pozo", "brigada": "Brigada de ag
 COSTOS = {"cortafuego": 1, "pozo": 2, "brigada": 2, "ribera": 2}
 RADIOS = {"cortafuego": 6, "pozo": 4, "brigada": 3, "ribera": 3}
 COLOR_HERR = {"cortafuego": 3, "pozo": 0xe, "brigada": 0xf, "ribera": 9}
-ANIMALES = {1: [("loro", 0.78, 0.25), ("zorro", 0.22, 0.78)],
-            2: [("oso", 0.75, 0.2), ("tatu", 0.2, 0.75)],
-            3: [("tagua", 0.7, 0.3), ("tortuga", 0.3, 0.7)]}
+ANIMALES = {1: [("loro", (0.78, 0.25), (0.15, 0.15)), ("zorro", (0.2, 0.8), (0.85, 0.75))],
+            2: [("oso", (0.35, 0.35), (0.1, 0.15)), ("tatu", (0.2, 0.7), (0.06, 0.85))],
+            3: [("tagua", (0.7, 0.3), (0.2, 0.8)), ("tortuga", (0.3, 0.7), (0.8, 0.2))]}
+# velocidad (celdas por paso), deteccion del fuego (celdas), peso en la cuenta de rescatados
+PERFIL = {"loro": (1.2, 8, 1), "zorro": (1.1, 7, 1), "oso": (0.8, 6, 2),
+          "tatu": (0.4, 5, 1), "tagua": (0.5, 6, 3), "tortuga": (0.2, 4, 1)}
 PAL = np.array(PALETA, np.uint8)
 
 
@@ -188,6 +191,7 @@ class Juego:
         self.colocadas, self.prob = [], None
         self.cola_pasos, self.t_paso, self.fin, self.por_vigia = 0, 0.0, False, False
         self.msg = "Elige una herramienta y haz clic en el mapa."
+        self.crear_animales()
 
     def porcentaje(self):
         return min(100.0, 100.0 * self.e["quemadas"] / max(1, self.comb0))
@@ -232,11 +236,11 @@ class Juego:
         if e is None:
             raise RuntimeError("SIMULATE fallo: " + self.con.error)
         self.aplicar(e)
+        self.mover_animales()
 
     def terminar_ronda(self):
         if self.e["ardiendo"] == 0 or self.ronda >= RONDAS:
-            self.fin = True
-            self.msg = f"Fin del nivel: se quemo el {self.porcentaje():.0f}% del bosque. R para reintentar."
+            self.cerrar_nivel()
         else:
             self.ronda, self.pa, self.vigias = self.ronda + 1, PA_RONDA, VIGIAS_RONDA
             self.msg = f"Ronda {self.ronda}: planifica con tus {PA_RONDA} puntos."
@@ -318,6 +322,111 @@ class Juego:
         sup = pygame.surfarray.make_surface(np.ascontiguousarray(img.swapaxes(0, 1)))
         return pygame.transform.scale(sup, self.disp)
 
+    # ---- animales (RF-04) y estrellas (RF-08) ----
+    def libre(self, fx, fy):
+        cx, cy = int(fx * (self.w - 1)), int(fy * (self.h - 1))
+        for r in range(12):
+            for dy in range(-r, r + 1):
+                for dx in range(-r, r + 1):
+                    x, y = cx + dx, cy + dy
+                    if 0 <= x < self.w and 0 <= y < self.h and self.terreno[y, x] != 4:
+                        return x, y
+        return cx, cy
+
+    def crear_animales(self):
+        self.animales = []
+        for nombre, ini, ref in ANIMALES.get(self.nivel, []):
+            vel, det, peso = PERFIL[nombre]
+            x, y = self.libre(*ini)
+            self.animales.append(dict(nombre=nombre, x=x, y=y, ref=self.libre(*ref), vel=vel,
+                                      det=det, peso=peso, acc=0.0, est="normal"))
+        self.estrellas = 0
+
+    def rescatados(self):
+        total = sum(a["peso"] for a in self.animales)
+        return sum(a["peso"] for a in self.animales if a["est"] == "refugiado"), total
+
+    def paso_animal(self, a, arde, quem):
+        rx_, ry_ = a["ref"]
+        x, y, r = a["x"], a["y"], a["det"]
+        if math.hypot(rx_ - x, ry_ - y) <= 1.5:
+            a["x"], a["y"], a["est"] = rx_, ry_, "refugiado"
+            return
+        y0, y1, x0, x1 = max(0, y - r), min(self.h, y + r + 1), max(0, x - r), min(self.w, x + r + 1)
+        fy, fx = np.nonzero(arde[y0:y1, x0:x1])
+        fx, fy = fx + x0, fy + y0
+        mejor, mc = None, 1e9
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                nx, ny = x + dx, y + dy
+                if (dx == 0 and dy == 0) or not (0 <= nx < self.w and 0 <= ny < self.h):
+                    continue
+                if quem[ny, nx] or (a["nombre"] != "loro" and self.terreno[ny, nx] == 4):
+                    continue
+                c = math.hypot(rx_ - nx, ry_ - ny)
+                if len(fx):
+                    d = float(np.min(np.hypot(fx - nx, fy - ny)))
+                    if d < r:
+                        c += 4.0 * (r - d)
+                if c < mc:
+                    mc, mejor = c, (nx, ny)
+        if mejor:
+            a["x"], a["y"] = mejor
+
+    def mover_animales(self):
+        arde, quem = self.actual == E_ARDIENDO, self.actual != 0
+        for a in self.animales:
+            if a["est"] != "normal":
+                continue
+            if quem[a["y"], a["x"]]:
+                a["est"] = "asustado"
+                continue
+            a["acc"] += a["vel"]
+            while a["acc"] >= 1.0 and a["est"] == "normal":
+                a["acc"] -= 1.0
+                self.paso_animal(a, arde, quem)
+
+    def calcular_estrellas(self):
+        r, t = self.rescatados()
+        pr = 100.0 * r / t if t else 100.0
+        q = self.porcentaje()
+        if pr >= 90 and q < 25:
+            return 3
+        if pr >= 75 and q < 40:
+            return 2
+        return 1 if pr >= 50 else 0
+
+    def cerrar_nivel(self):
+        self.fin = True
+        if self.e["ardiendo"] == 0:
+            for _ in range(600):
+                if all(a["est"] != "normal" for a in self.animales):
+                    break
+                self.mover_animales()
+        for a in self.animales:
+            if a["est"] == "normal":
+                a["est"] = "asustado"
+        self.estrellas = self.calcular_estrellas()
+        r, t = self.rescatados()
+        self.msg = f"{self.estrellas} estrellas. Rescatados {r}/{t}. R para reintentar."
+
+    def estrella(self, lg, cx, cy, r, llena):
+        pts = [(cx + (r if k % 2 == 0 else r * 0.45) * math.cos(-math.pi / 2 + k * math.pi / 5),
+                cy + (r if k % 2 == 0 else r * 0.45) * math.sin(-math.pi / 2 + k * math.pi / 5)) for k in range(10)]
+        pygame.draw.polygon(lg, PALETA[0xc if llena else 1], pts)
+        pygame.draw.polygon(lg, PALETA[0xb if llena else 0], pts, 1)
+
+    def pantalla_final(self, lg):
+        r = pygame.Rect(self.ox + 6, self.oy + self.disp[1] // 2 - 40, self.disp[0] - 12, 80)
+        pygame.draw.rect(lg, PALETA[0], r)
+        pygame.draw.rect(lg, PALETA[0xc], r, 1)
+        self.txt(lg, "NIVEL TERMINADO", r.x + 8, r.y + 5, 0xc)
+        for i in range(3):
+            self.estrella(lg, r.x + r.w // 2 - 30 + i * 30, r.y + 30, 11, i < self.estrellas)
+        rs, tt = self.rescatados()
+        self.txt(lg, f"Resc {rs}/{tt}  Quemado {self.porcentaje():.0f}%", r.x + 8, r.y + 52)
+        self.txt(lg, "R reintentar", r.x + 8, r.y + 65, 4)
+
     def asustado(self, fx, fy):
         cx, cy, r = int(fx * self.w), int(fy * self.h), 6
         sub = self.actual[max(0, cy - r):cy + r + 1, max(0, cx - r):cx + r + 1]
@@ -344,10 +453,17 @@ class Juego:
             else:
                 pygame.draw.circle(lg, col, hover, max(2, int(r * pxc)), 1)
         figuras = []
-        for nombre, fx, fy in ANIMALES.get(self.nivel, []):
-            est = "asustado" if self.asustado(fx, fy) else "normal"
-            figuras.append((self.oy + fy * self.disp[1], self.sprite(f"animal_{nombre}_{est}"),
-                            (self.ox + fx * self.disp[0] - 8, self.oy + fy * self.disp[1] - 14)))
+        for a in self.animales:
+            rx_, ry_ = a["ref"]
+            pygame.draw.circle(lg, PALETA[0xc], (int(self.ox + (rx_ + 0.5) * pxc), int(self.oy + (ry_ + 0.5) * self.disp[1] / self.h)), 3, 1)
+        for a in self.animales:
+            qx = self.ox + (a["x"] + 0.5) * pxc
+            qy = self.oy + (a["y"] + 0.5) * self.disp[1] / self.h
+            spr = self.sprite(f"animal_{a['nombre']}_{a['est']}")
+            figuras.append((qy, spr, (qx - 8, qy - 14)))
+            if a["nombre"] == "tagua":
+                figuras.append((qy + 1, spr, (qx - 13, qy - 12)))
+                figuras.append((qy + 1, spr, (qx + 5, qy - 12)))
         if self.accion and not self.destino:
             g = self.sprite("guardiana_accion")
         else:
@@ -357,10 +473,12 @@ class Juego:
         for _, s, pos in sorted(figuras, key=lambda t: t[0]):
             lg.blit(s, (int(pos[0]), int(pos[1])))
         self.hud(lg)
+        if self.fin:
+            self.pantalla_final(lg)
 
     def hud(self, lg):
         self.txt(lg, "GUARDIANES DEL CHACO", HUD_X, 4, 0xc)
-        self.txt(lg, f"Nivel {self.nivel}   Ronda {self.ronda}/{RONDAS}", HUD_X, 15)
+        self.txt(lg, f"Nivel {self.nivel}  Ronda {self.ronda}/{RONDAS}  Resc {self.rescatados()[0]}/{self.rescatados()[1]}", HUD_X, 15)
         self.txt(lg, f"Acciones {self.pa}/{PA_RONDA}  Vigia {self.vigias}/{VIGIAS_RONDA}", HUD_X, 25)
         for i, h in enumerate(ORDEN):
             r = self.botones[h]
