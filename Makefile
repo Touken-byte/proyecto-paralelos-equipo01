@@ -29,3 +29,7 @@ clean:
 > rm -rf $(BIN)
 
 .PHONY: all test clean
+
+$(BIN)/bench_seq: $(SEQ)/bench_seq.c $(LIB)
+> @mkdir -p $(BIN)
+> $(CC) $(CFLAGS) -o $@ $^ -lm

@@ -69,3 +69,32 @@ ParamsFuego mapgen_params(int nivel, uint64_t seed) {
     }
     return p;
 }
+
+Mapa *mapgen_tamano(int N, uint64_t seed) {
+    if (N < 16 || N > 8192) return NULL;
+    Mapa *m = mapa_crear(N, N);
+    if (!m) return NULL;
+
+    for (int y = 0; y < N; y++) {
+        for (int x = 0; x < N; x++) {
+            size_t i = mapa_idx(m, x, y);
+            double v = ruido(seed, 1, x, y);
+            double hum = ruido(seed, 2, x, y);
+            double rel = ruido(seed, 3, x, y);
+
+            m->terreno[i] = v < 0.30 ? T_PASTO : (v < 0.65 ? T_MONTE_SECO : T_MONTE_DENSO);
+            m->humedad[i] = (uint8_t)(60 + hum * 80);
+            m->relieve[i] = (uint8_t)(rel * 255.0);
+
+            double cx = N * 0.7 + 10.0 * sin(y * 0.08);
+            double dist = fabs(x - cx);
+            if (dist <= 2.0)      { m->terreno[i] = T_AGUA;   m->humedad[i] = 255; }
+            else if (dist <= 4.0) { m->terreno[i] = T_RIBERA; m->humedad[i] = 200; }
+        }
+    }
+
+    size_t f = mapa_idx(m, N / 3, (N * 3) / 4);
+    m->terreno[f] = T_MONTE_SECO;
+    m->actual[f] = E_ARDIENDO;
+    return m;
+}
