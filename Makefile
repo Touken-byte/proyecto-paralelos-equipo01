@@ -54,3 +54,11 @@ $(BIN)/test_bloques: $(PAR)/test_bloques.c $(PAR)/fuego_mpi.c $(LIB)
 $(BIN)/bench_mpi: $(PAR)/bench_mpi.c $(PAR)/fuego_mpi.c $(LIB)
 > @mkdir -p $(BIN)
 > mpicc $(CFLAGS) -fopenmp -I$(SEQ) -o $@ $^ -lm
+
+$(BIN)/bench_vigia: $(SEQ)/bench_vigia.c $(SEQ)/vigia.c $(LIB)
+> @mkdir -p $(BIN)
+> $(CC) $(CFLAGS) -I$(SEQ) -o $@ $^ -lm
+
+$(BIN)/bench_vigia_mpi: $(PAR)/bench_vigia_mpi.c $(SEQ)/vigia.c $(LIB)
+> @mkdir -p $(BIN)
+> mpicc $(CFLAGS) -I$(SEQ) -o $@ $^ -lm
