@@ -361,13 +361,13 @@ class Juego:
     def hud(self, lg):
         self.txt(lg, "GUARDIANES DEL CHACO", HUD_X, 4, 0xc)
         self.txt(lg, f"Nivel {self.nivel}   Ronda {self.ronda}/{RONDAS}", HUD_X, 15)
-        self.txt(lg, f"Puntos de accion {self.pa}/{PA_RONDA}   Vigia {self.vigias}/{VIGIAS_RONDA}", HUD_X, 25)
+        self.txt(lg, f"Acciones {self.pa}/{PA_RONDA}  Vigia {self.vigias}/{VIGIAS_RONDA}", HUD_X, 25)
         for i, h in enumerate(ORDEN):
             r = self.botones[h]
             pygame.draw.rect(lg, PALETA[2 if h == self.herr else 1], r)
             pygame.draw.rect(lg, PALETA[COLOR_HERR[h]], (r.x + 2, r.y + 2, 7, 7))
-            self.txt(lg, f"{i + 1} {NOMBRES[h]} ({COSTOS[h]})", r.x + 12, r.y + 1)
-        self.txt(lg, "Cortafuego: " + ("horizontal" if self.orient == "h" else "vertical") + " (T)", HUD_X, 90, 4)
+            self.txt(lg, f"{i + 1} {NOMBRES[h]} {COSTOS[h]}pa", r.x + 12, r.y + 1)
+        self.txt(lg, "Cortafuego: " + ("horizontal" if self.orient == "h" else "vertical") + "  tecla T", HUD_X, 90, 4)
         for clave, etq in (("vigia", "V  Consultar al Vigia"), ("simular", "Espacio  Simular ronda")):
             r = self.botones[clave]
             pygame.draw.rect(lg, PALETA[6], r)
@@ -375,9 +375,9 @@ class Juego:
         if self.prob is not None:
             for i in range(60):
                 p = i / 59
-                lg.fill((255, int(230 * (1 - p)), 40), (HUD_X + i, 128, 1, 3))
-            self.txt(lg, "0%", HUD_X + 63, 125, 4)
-            self.txt(lg, "100% prob. de quema", HUD_X + 80, 125, 4)
+                lg.fill((255, int(230 * (1 - p)), 40), (HUD_X + 14 + i, 128, 1, 4))
+            self.txt(lg, "0%", HUD_X, 126, 4)
+            self.txt(lg, "100%", HUD_X + 78, 126, 4)
         self.txt(lg, f"Quemado {self.porcentaje():.0f}%   Llamas {self.e['ardiendo']}", HUD_X, 135)
         for i, ln in enumerate(envolver(self.fuente, self.msg, LW - HUD_X - 4)[:3]):
             self.txt(lg, ln, HUD_X, 148 + 10 * i, 0xc if self.fin else 4)
