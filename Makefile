@@ -38,3 +38,7 @@ PAR = src/parallel
 $(BIN)/bench_omp: $(PAR)/bench_omp.c $(PAR)/fuego_omp.c $(LIB)
 > @mkdir -p $(BIN)
 > $(CC) $(CFLAGS) -fopenmp -I$(SEQ) -o $@ $^ -lm
+
+$(BIN)/false_sharing: $(PAR)/false_sharing.c
+> @mkdir -p $(BIN)
+> $(CC) $(CFLAGS) -fopenmp -o $@ $^
