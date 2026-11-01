@@ -1,0 +1,15 @@
+# Compilados y binarios
+*.o
+*.out
+build/
+bin/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Sistema y editores
+.DS_Store
+*.swp
+.vscode/
