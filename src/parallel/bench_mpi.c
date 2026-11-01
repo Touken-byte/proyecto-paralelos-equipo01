@@ -58,6 +58,18 @@ int main(int argc, char **argv) {
     int abajo = rank < P - 1 ? rank + 1 : MPI_PROC_NULL;
 
     MPI_Barrier(MPI_COMM_WORLD);
+    {   /* halo inicial de a, t, h y r (Scatterv solo llena las filas reales) */
+        uint8_t *ini[4] = {a, t, h, r};
+        for (int k = 0; k < 4; k++) {
+            uint8_t *x = ini[k];
+            MPI_Request q4[4];
+            MPI_Irecv(x, N, MPI_UINT8_T, arriba, 0, MPI_COMM_WORLD, &q4[0]);
+            MPI_Irecv(x + (size_t)(filas + 1) * N, N, MPI_UINT8_T, abajo, 1, MPI_COMM_WORLD, &q4[1]);
+            MPI_Isend(x + (size_t)filas * N, N, MPI_UINT8_T, abajo, 0, MPI_COMM_WORLD, &q4[2]);
+            MPI_Isend(x + (size_t)N, N, MPI_UINT8_T, arriba, 1, MPI_COMM_WORLD, &q4[3]);
+            MPI_Waitall(4, q4, MPI_STATUSES_IGNORE);
+        }
+    }
     double t0 = MPI_Wtime();
     for (int paso = 0; paso < pasos; paso++) {
         fuego_paso_bloque(a, b, t, h, r, N, filas, y0, &p, (uint64_t)paso);
