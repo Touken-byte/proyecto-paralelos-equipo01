@@ -4,7 +4,6 @@
 
 x-nodo: &nodo
   build: .
-  image: guardianes-mpi
   volumes:
     - ..:/home/mpiuser/proyecto
   mem_limit: ${NODE_MEM:-512m}
@@ -16,14 +15,17 @@ services:
     <<: *nodo
     hostname: master
     container_name: master
+    image: guardianes-mpi-master
   worker1:
     <<: *nodo
     hostname: worker1
     container_name: worker1
+    image: guardianes-mpi-worker1
   worker2:
     <<: *nodo
     hostname: worker2
     container_name: worker2
+    image: guardianes-mpi-worker2
 
 networks:
   cluster:
