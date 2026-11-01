@@ -16,3 +16,4 @@ __pycache__/
 .~lock.*#
 build/
 .venv/
+build_docker/
