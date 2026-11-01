@@ -1,0 +1,30 @@
+# Clúster de 3 nodos: 1 master + 2 workers (Opción A de la guía)
+# Límite de memoria por nodo: variable NODE_MEM (512m por defecto; sube el valor en AUX y en la Dell).
+# Ejemplo: NODE_MEM=2g docker compose -f infrastructure/docker-compose.yml up -d --build
+
+x-nodo: &nodo
+  build: .
+  image: guardianes-mpi
+  volumes:
+    - ..:/home/mpiuser/proyecto
+  mem_limit: ${NODE_MEM:-512m}
+  networks:
+    - cluster
+
+services:
+  master:
+    <<: *nodo
+    hostname: master
+    container_name: master
+  worker1:
+    <<: *nodo
+    hostname: worker1
+    container_name: worker1
+  worker2:
+    <<: *nodo
+    hostname: worker2
+    container_name: worker2
+
+networks:
+  cluster:
+    driver: bridge
