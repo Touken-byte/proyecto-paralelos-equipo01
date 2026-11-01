@@ -33,3 +33,8 @@ clean:
 $(BIN)/bench_seq: $(SEQ)/bench_seq.c $(LIB)
 > @mkdir -p $(BIN)
 > $(CC) $(CFLAGS) -o $@ $^ -lm
+
+PAR = src/parallel
+$(BIN)/bench_omp: $(PAR)/bench_omp.c $(PAR)/fuego_omp.c $(LIB)
+> @mkdir -p $(BIN)
+> $(CC) $(CFLAGS) -fopenmp -I$(SEQ) -o $@ $^ -lm
