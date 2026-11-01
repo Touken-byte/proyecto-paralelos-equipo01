@@ -21,7 +21,7 @@ void fuego_paso_omp(Mapa *m, const ParamsFuego *p, uint64_t paso) {
     const double ux = vn > 0.0 ? p->viento_x / vn : 0.0;
     const double uy = vn > 0.0 ? p->viento_y / vn : 0.0;
 
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(runtime)
     for (int y = 0; y < H; y++) {
         for (int x = 0; x < W; x++) {
             size_t i = mapa_idx(m, x, y);
