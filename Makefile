@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -Wall -O2
 SEQ = src/sequential
 BIN = build
-LIB = $(SEQ)/mapa.c $(SEQ)/fuego.c $(SEQ)/mapgen.c
+LIB = $(SEQ)/mapa.c $(SEQ)/fuego.c $(SEQ)/mapgen.c $(SEQ)/exportar.c
 
 all: $(BIN)/secuencial
 
