@@ -46,3 +46,7 @@ $(BIN)/false_sharing: $(PAR)/false_sharing.c
 $(BIN)/volcar: $(SEQ)/volcar.c $(LIB)
 > @mkdir -p $(BIN)
 > $(CC) $(CFLAGS) -o $@ $^ -lm
+
+$(BIN)/test_bloques: $(PAR)/test_bloques.c $(PAR)/fuego_mpi.c $(LIB)
+> @mkdir -p $(BIN)
+> $(CC) $(CFLAGS) -I$(SEQ) -o $@ $^ -lm
