@@ -27,6 +27,9 @@ int main(int argc, char **argv) {
     int N = atoi(argv[1]);
     uint64_t seed = strtoull(argv[2], NULL, 10);
     int pasos = atoi(argv[3]);
+    const char *pt = getenv("PARADA_TEMPRANA");
+    int parada = !(pt && pt[0] == '0');
+    int hechos = pasos;
 
 
     Mapa *m = NULL;
@@ -74,6 +77,13 @@ int main(int argc, char **argv) {
     for (int paso = 0; paso < pasos; paso++) {
         fuego_paso_bloque(a, b, t, h, r, N, filas, y0, &p, (uint64_t)paso);
         uint8_t *tmp = a; a = b; b = tmp;
+        if (parada) {
+            long act_local = 0, act = 0;
+            for (size_t i = (size_t)N; i < (size_t)(filas + 1) * N; i++)
+                if (a[i] == E_ARDIENDO) act_local++;
+            MPI_Allreduce(&act_local, &act, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+            if (act == 0) { hechos = paso + 1; break; }
+        }
 
         MPI_Request rq[4];
         /* etiqueta 0: filas que viajan hacia abajo; etiqueta 1: hacia arriba */
@@ -89,7 +99,7 @@ int main(int argc, char **argv) {
     for (size_t i = (size_t)N; i < (size_t)(filas + 1) * N; i++)
         if (a[i] == E_CENIZA || a[i] == E_ARDIENDO) q_local++;
     long q = 0;
-    MPI_Reduce(&q_local, &q, 1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+    MPI_Allreduce(&q_local, &q, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
 
     /* hash del mapa completo: se recoge solo para verificar */
     uint8_t *todo = rank == 0 ? malloc((size_t)N * N) : NULL;
@@ -105,6 +115,7 @@ int main(int argc, char **argv) {
     if (rank == 0) {
         printf("%.4f,%016llx,%ld\n", t1 - t0,
                (unsigned long long)checksum_buf(todo, (size_t)N * N), q);
+        fprintf(stderr, "pasos ejecutados: %d de %d\n", hechos, pasos);
         free(todo); free(cnt); free(des);
     }
     free(a); free(b); free(t); free(h); free(r);
