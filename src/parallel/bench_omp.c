@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     for (int t = 0; t < pasos; t++) fuego_paso_omp(m, &p, (uint64_t)t);
     double t1 = ahora();
 
-    long q = mapa_contar(m, E_CENIZA) + mapa_contar(m, E_ARDIENDO);
+    long q = mapa_contar_omp(m, E_CENIZA) + mapa_contar_omp(m, E_ARDIENDO);
     fprintf(stderr, "hilos=%d\n", omp_get_max_threads());
     printf("%.4f,%016llx,%ld\n", t1 - t0, (unsigned long long)checksum(m), q);
     mapa_liberar(m);

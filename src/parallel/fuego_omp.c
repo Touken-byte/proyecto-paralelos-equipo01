@@ -69,3 +69,12 @@ void fuego_paso_omp(Mapa *m, const ParamsFuego *p, uint64_t paso) {
     }
     mapa_intercambiar(m);
 }
+
+long mapa_contar_omp(const Mapa *m, uint8_t estado) {
+    long c = 0;
+    const long n = (long)m->ancho * (long)m->alto;
+    #pragma omp parallel for reduction(+:c) schedule(static)
+    for (long i = 0; i < n; i++)
+        if (m->actual[i] == estado) c++;
+    return c;
+}
