@@ -62,3 +62,7 @@ $(BIN)/bench_vigia: $(SEQ)/bench_vigia.c $(SEQ)/vigia.c $(LIB)
 $(BIN)/bench_vigia_mpi: $(PAR)/bench_vigia_mpi.c $(SEQ)/vigia.c $(LIB)
 > @mkdir -p $(BIN)
 > mpicc $(CFLAGS) -I$(SEQ) -o $@ $^ -lm
+
+$(BIN)/motor_tcp: $(PAR)/motor_tcp.c $(PAR)/fuego_omp.c $(SEQ)/vigia.c $(LIB)
+> @mkdir -p $(BIN)
+> mpicc $(CFLAGS) -fopenmp -I$(SEQ) -o $@ $^ -lm
