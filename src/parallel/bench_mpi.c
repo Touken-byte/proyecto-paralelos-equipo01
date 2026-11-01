@@ -13,7 +13,7 @@ static uint64_t checksum_buf(const uint8_t *b, size_t n) {
 }
 
 /* uso: mpirun -np P bench_mpi N SEED PASOS -> tiempo_s,hash,quemadas (solo rank 0)
-   Cada rank genera el mapa completo con la misma seed y se queda con su bloque. */
+   El rank 0 genera el mapa y lo reparte con MPI_Scatterv; se recoge con MPI_Gatherv. */
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
     int rank, P;
@@ -28,8 +28,12 @@ int main(int argc, char **argv) {
     uint64_t seed = strtoull(argv[2], NULL, 10);
     int pasos = atoi(argv[3]);
 
-    Mapa *m = mapgen_tamano(N, seed);
-    if (!m) { MPI_Abort(MPI_COMM_WORLD, 1); }
+
+    Mapa *m = NULL;
+    if (rank == 0) {
+        m = mapgen_tamano(N, seed);
+        if (!m) MPI_Abort(MPI_COMM_WORLD, 1);
+    }
     ParamsFuego p = mapgen_params(2, seed);
 
     int y0 = (int)((long)rank * N / P), y1 = (int)((long)(rank + 1) * N / P);
@@ -37,16 +41,18 @@ int main(int argc, char **argv) {
     size_t tam = (size_t)(filas + 2) * N;
     uint8_t *a = calloc(tam, 1), *b = calloc(tam, 1);
     uint8_t *t = calloc(tam, 1), *h = calloc(tam, 1), *r = calloc(tam, 1);
-    for (int y = -1; y <= filas; y++) {
-        int gy = y0 + y;
-        if (gy < 0 || gy >= N) continue;
-        size_t d = (size_t)(y + 1) * N, s = (size_t)gy * N;
-        memcpy(a + d, m->actual + s, N);
-        memcpy(t + d, m->terreno + s, N);
-        memcpy(h + d, m->humedad + s, N);
-        memcpy(r + d, m->relieve + s, N);
+
+    int *scnt = malloc((size_t)P * sizeof(int)), *sdes = malloc((size_t)P * sizeof(int));
+    for (int k = 0; k < P; k++) {
+        int a0 = (int)((long)k * N / P), a1 = (int)((long)(k + 1) * N / P);
+        scnt[k] = (a1 - a0) * N; sdes[k] = a0 * N;
     }
-    mapa_liberar(m);
+    MPI_Scatterv(rank == 0 ? m->actual : NULL,  scnt, sdes, MPI_UINT8_T, a + N, filas * N, MPI_UINT8_T, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(rank == 0 ? m->terreno : NULL, scnt, sdes, MPI_UINT8_T, t + N, filas * N, MPI_UINT8_T, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(rank == 0 ? m->humedad : NULL, scnt, sdes, MPI_UINT8_T, h + N, filas * N, MPI_UINT8_T, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(rank == 0 ? m->relieve : NULL, scnt, sdes, MPI_UINT8_T, r + N, filas * N, MPI_UINT8_T, 0, MPI_COMM_WORLD);
+    free(scnt); free(sdes);
+    if (rank == 0) mapa_liberar(m);
 
     int arriba = rank > 0 ? rank - 1 : MPI_PROC_NULL;
     int abajo = rank < P - 1 ? rank + 1 : MPI_PROC_NULL;
