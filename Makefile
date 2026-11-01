@@ -42,3 +42,7 @@ $(BIN)/bench_omp: $(PAR)/bench_omp.c $(PAR)/fuego_omp.c $(LIB)
 $(BIN)/false_sharing: $(PAR)/false_sharing.c
 > @mkdir -p $(BIN)
 > $(CC) $(CFLAGS) -fopenmp -o $@ $^
+
+$(BIN)/volcar: $(SEQ)/volcar.c $(LIB)
+> @mkdir -p $(BIN)
+> $(CC) $(CFLAGS) -o $@ $^ -lm
