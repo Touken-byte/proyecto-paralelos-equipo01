@@ -23,6 +23,9 @@ void fuego_paso_bloque(const uint8_t *act, uint8_t *sig,
     const double ux = vn > 0.0 ? p->viento_x / vn : 0.0;
     const double uy = vn > 0.0 ? p->viento_y / vn : 0.0;
 
+#ifdef _OPENMP
+    #pragma omp parallel for schedule(static)
+#endif
     for (int y = 1; y <= filas; y++) {
         for (int x = 0; x < W; x++) {
             size_t i = (size_t)y * W + x;
