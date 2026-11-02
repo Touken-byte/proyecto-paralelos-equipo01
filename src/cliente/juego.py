@@ -37,10 +37,10 @@ RADIOS = {"cortafuego": 6, "pozo": 4, "brigada": 3, "ribera": 3}
 COLOR_HERR = {"cortafuego": 3, "pozo": 0xe, "brigada": 0xf, "ribera": 9}
 ANIMALES = {1: [("loro", (0.78, 0.25), (0.15, 0.15)), ("zorro", (0.2, 0.8), (0.85, 0.75))],
             2: [("oso", (0.35, 0.35), (0.1, 0.15)), ("tatu", (0.2, 0.7), (0.06, 0.85))],
-            3: [("tagua", (0.7, 0.3), (0.2, 0.8)), ("tortuga", (0.3, 0.7), (0.8, 0.2))]}
+            3: [("tagua", (0.39, 0.50), (0.50, 0.51)), ("tortuga", (0.36, 0.58), (0.42, 0.57))]}
 # velocidad (celdas por paso), deteccion del fuego (celdas), peso en la cuenta de rescatados
 PERFIL = {"loro": (1.2, 8, 1), "zorro": (1.1, 7, 1), "oso": (0.8, 6, 2),
-          "tatu": (0.4, 5, 1), "tagua": (0.5, 6, 3), "tortuga": (0.2, 4, 1)}
+          "tatu": (0.4, 5, 1), "tagua": (0.5, 6, 3), "tortuga": (0.35, 4, 1)}
 PAL = np.array(PALETA, np.uint8)
 
 

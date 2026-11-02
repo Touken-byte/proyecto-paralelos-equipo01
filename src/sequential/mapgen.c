@@ -25,6 +25,7 @@ Mapa *mapgen_nivel(int nivel, uint64_t seed) {
     int W, H;
     if (nivel == 1) { W = 64; H = 64; }
     else if (nivel == 2) { W = 128; H = 128; }
+    else if (nivel == 3) { W = 200; H = 200; }
     else return NULL;
 
     Mapa *m = mapa_crear(W, H);
@@ -38,7 +39,7 @@ Mapa *mapgen_nivel(int nivel, uint64_t seed) {
             double rel = ruido(seed, 3, x, y);
 
             m->terreno[i] = v < 0.30 ? T_PASTO : (v < 0.65 ? T_MONTE_SECO : T_MONTE_DENSO);
-            m->humedad[i] = (uint8_t)(nivel == 1 ? 50 + hum * 40 : 60 + hum * 80);
+            m->humedad[i] = (uint8_t)(nivel == 1 ? 50 + hum * 40 : (nivel == 3 ? 10 + hum * 80 : 60 + hum * 80));
             m->relieve[i] = (uint8_t)(nivel == 2 ? rel * 255.0 : 128);
 
             if (nivel == 2) {
@@ -47,11 +48,36 @@ Mapa *mapgen_nivel(int nivel, uint64_t seed) {
                 if (dist <= 2.0)      { m->terreno[i] = T_AGUA;   m->humedad[i] = 255; }
                 else if (dist <= 4.0) { m->terreno[i] = T_RIBERA; m->humedad[i] = 200; }
             }
+            if (nivel == 3) {
+                /* Rio sinuoso vertical con un vado ancho (agua -> ribera) */
+                double cx = W * 0.5 + 12.0 * sin(y * 0.05);
+                double dist = fabs(x - cx);
+                int vado = y >= 94 && y <= 106;
+                if (dist <= 2.0)      { m->terreno[i] = vado ? T_RIBERA : T_AGUA; m->humedad[i] = vado ? 200 : 255; }
+                else if (dist <= 4.0) { m->terreno[i] = T_RIBERA; m->humedad[i] = 200; }
+            }
         }
     }
 
     int fx = nivel == 1 ? W / 2 : W / 3;
     int fy = nivel == 1 ? H / 2 : (H * 3) / 4;
+    if (nivel == 3) {
+        static const int PZ[4][2] = {{35, 40}, {150, 100}, {70, 110}, {150, 170}};
+        for (int k = 0; k < 4; k++) {
+            size_t q = mapa_idx(m, PZ[k][0], PZ[k][1]);
+            m->terreno[q] = T_POZO;
+            m->humedad[q] = 255;
+        }
+        static const int FC[3][2] = {{58, 84}, {45, 118}, {30, 60}};
+        for (int j = 0; j < 3; j++)
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++) {
+                    size_t q = mapa_idx(m, FC[j][0] + dx, FC[j][1] + dy);
+                    m->terreno[q] = T_MONTE_SECO;
+                    m->actual[q] = E_ARDIENDO;
+                }
+        fx = FC[0][0]; fy = FC[0][1];
+    }
     size_t f = mapa_idx(m, fx, fy);
     m->terreno[f] = T_MONTE_SECO;
     m->actual[f] = E_ARDIENDO;
@@ -64,6 +90,10 @@ ParamsFuego mapgen_params(int nivel, uint64_t seed) {
         p.viento_x = 0.0;
         p.viento_y = -1.0;   /* hacia el norte (y decrece): viento del sur */
         p.viento_fuerza = 0.8;
+    } else if (nivel == 3) {
+        p.viento_x = 1.0;    /* hacia el este: empuja el fuego hacia el rio */
+        p.viento_y = 0.0;
+        p.viento_fuerza = 0.5;
     } else {
         p.viento_fuerza = 0.0;
     }

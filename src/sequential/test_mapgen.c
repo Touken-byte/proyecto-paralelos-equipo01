@@ -15,7 +15,7 @@ static uint64_t checksum(const Mapa *m) {
 
 int main(void) {
     int ok = 1;
-    for (int nivel = 1; nivel <= 2; nivel++) {
+    for (int nivel = 1; nivel <= 3; nivel++) {
         Mapa *a = mapgen_nivel(nivel, 42);
         Mapa *b = mapgen_nivel(nivel, 42);
         Mapa *c = mapgen_nivel(nivel, 43);
