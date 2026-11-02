@@ -4,7 +4,7 @@ Uso (desde la raiz del repo):
   python3 src/cliente/juego.py [--nivel 1] [--np 2] [--esc 4]   lanza el motor y juega
   python3 src/cliente/juego.py --host IP --puerto 5555          se conecta a un motor ya corriendo
   python3 src/cliente/juego.py --prueba                         prueba sin pantalla
-Teclas: 1-4 herramienta, T orienta el cortafuego, V Vigia, Espacio simula la ronda, R reinicia, Esc sale."""
+Teclas: 1-4 herramienta, T orienta el cortafuego, M silencia, V Vigia, Espacio simula la ronda, R reinicia, Esc sale."""
 import argparse
 import math
 import os
@@ -25,6 +25,7 @@ sys.path.insert(0, AQUI)
 from paleta import PALETA  # noqa: E402
 from sprites import SPRITES  # noqa: E402
 from tiles import TILES  # noqa: E402
+from sonido import Sonido  # noqa: E402
 
 LW, LH, TS = 320, 180, 16
 MAPA_X, MAPA_Y, MAPA_MAX, HUD_X = 4, 4, 172, 180
@@ -42,6 +43,7 @@ ANIMALES = {1: [("loro", (0.78, 0.25), (0.15, 0.15)), ("zorro", (0.2, 0.8), (0.8
 PERFIL = {"loro": (1.2, 8, 1), "zorro": (1.1, 7, 1), "oso": (0.8, 6, 2),
           "tatu": (0.4, 5, 1), "tagua": (0.5, 6, 3), "tortuga": (0.35, 4, 1)}
 PAL = np.array(PALETA, np.uint8)
+AUDIO = Sonido()   # silencioso hasta que jugar() lo activa
 
 
 def rgb(filas):
@@ -221,6 +223,7 @@ class Juego:
             return
         self.aplicar(e)
         self.pa -= COSTOS[herr]
+        AUDIO.play("agua" if herr in ("pozo", "brigada") else "colocar")
         self.colocadas.append((herr, cx, cy, r))
         self.prob = None
         self.msg = f"{NOMBRES[herr]} colocado. Puntos de accion: {self.pa}."
@@ -351,6 +354,7 @@ class Juego:
         x, y, r = a["x"], a["y"], a["det"]
         if math.hypot(rx_ - x, ry_ - y) <= 1.5:
             a["x"], a["y"], a["est"] = rx_, ry_, "refugiado"
+            AUDIO.play("rescate")
             return
         y0, y1, x0, x1 = max(0, y - r), min(self.h, y + r + 1), max(0, x - r), min(self.w, x + r + 1)
         fy, fx = np.nonzero(arde[y0:y1, x0:x1])
@@ -380,6 +384,7 @@ class Juego:
                 continue
             if quem[a["y"], a["x"]]:
                 a["est"] = "asustado"
+                AUDIO.play("alerta_fuego")
                 continue
             a["acc"] += a["vel"]
             while a["acc"] >= 1.0 and a["est"] == "normal":
@@ -407,6 +412,8 @@ class Juego:
             if a["est"] == "normal":
                 a["est"] = "asustado"
         self.estrellas = self.calcular_estrellas()
+        if self.estrellas >= 1:
+            AUDIO.play("victoria")
         r, t = self.rescatados()
         self.msg = f"{self.estrellas} estrellas. Rescatados {r}/{t}. R para reintentar."
 
@@ -516,6 +523,7 @@ def cerrar(con, srv):
 
 def jugar(a):
     pygame.init()
+    AUDIO.activar()
     ventana = pygame.display.set_mode((LW * a.esc, LH * a.esc))
     pygame.display.set_caption("Guardianes del Chaco")
     lg = pygame.Surface((LW, LH))
@@ -537,6 +545,9 @@ def jugar(a):
                         corriendo = False
                     elif ev.key in teclas:
                         j.herr = teclas[ev.key]
+                        AUDIO.play("clic")
+                    elif ev.key == pygame.K_m:
+                        AUDIO.alternar()
                     elif ev.key == pygame.K_t:
                         j.orient = "v" if j.orient == "h" else "h"
                     elif ev.key == pygame.K_v:
@@ -553,6 +564,7 @@ def jugar(a):
                         for h in ORDEN:
                             if j.botones[h].collidepoint(p):
                                 j.herr = h
+                                AUDIO.play("clic")
                         if j.botones["vigia"].collidepoint(p):
                             j.consultar_vigia()
                         if j.botones["simular"].collidepoint(p):
