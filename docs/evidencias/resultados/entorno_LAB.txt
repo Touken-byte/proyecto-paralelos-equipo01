@@ -1,0 +1,17 @@
+mar 03 nov 2026 09:03:54 -04
+CPU(s):                                  24
+Model name:                              13th Gen Intel(R) Core(TM) i7-13700
+Thread(s) per core:                      2
+Core(s) per socket:                      16
+CPU(s) scaling MHz:                      21%
+               total       usado       libre  compartido   búf/caché  disponible
+Mem:            31Gi       4,0Gi        22Gi       457Mi       5,3Gi        27Gi
+NODE_MEM=6g
+ 09:03:54 up  1:10,  1 user,  load average: 0,84, 2,52, 2,39
+worker2
+worker1
+master
+syslab_frontend
+09a9376f7fc5_syslab_backend
+syslab_db
+lab_postgres_db
