@@ -7,6 +7,22 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Si el host no tiene mpicc (p. ej. la Dell), relanzar el script dentro del master del clúster
+if ! command -v mpicc >/dev/null 2>&1; then
+  command -v docker >/dev/null 2>&1 || { echo "ERROR: faltan mpicc y docker en el host" >&2; exit 1; }
+  COMPOSE="docker compose -f infrastructure/docker-compose.yml"
+  if ! $COMPOSE ps --status running --services 2>/dev/null | grep -qx master; then
+    echo "ERROR: el clúster no está arriba. Levántalo con: NODE_MEM=6g $COMPOSE up -d --build" >&2
+    exit 1
+  fi
+  echo "==> mpicc no está en el host: ejecutando dentro del clúster (master)"
+  ENVARGS=(BIN="${BIN:-build_docker}" MPI_EXTRA="${MPI_EXTRA:---hostfile infrastructure/hostfile --map-by node}")
+  for v in PASOS REPS TAMANOS HILOS PROCS CORES NVIG PASOS_VIG SIMS_FUERTE SIMS_BASE; do
+    if [ -n "${!v+x}" ]; then ENVARGS+=("$v=${!v}"); fi
+  done
+  exec $COMPOSE exec -T -u mpiuser -w /home/mpiuser/proyecto master env "${ENVARGS[@]}" ./scripts/benchmark.sh "$@"
+fi
+
 EQUIPO=${1:-L}
 SEED=2
 PASOS=${PASOS:-50}
