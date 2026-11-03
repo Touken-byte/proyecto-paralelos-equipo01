@@ -492,7 +492,7 @@ class Juego:
             pygame.draw.rect(lg, PALETA[2 if h == self.herr else 1], r)
             pygame.draw.rect(lg, PALETA[COLOR_HERR[h]], (r.x + 2, r.y + 2, 7, 7))
             self.txt(lg, f"{i + 1} {NOMBRES[h]} {COSTOS[h]}pa", r.x + 12, r.y + 1)
-        self.txt(lg, "Cortafuego: " + ("horizontal" if self.orient == "h" else "vertical") + "  tecla T", HUD_X, 90, 4)
+        self.txt(lg, "Cortafuego: " + ("horizontal" if self.orient == "h" else "vertical") + " (T)", HUD_X, 90, 4)
         for clave, etq in (("vigia", "V  Consultar al Vigia"), ("simular", "Espacio  Simular ronda")):
             r = self.botones[clave]
             pygame.draw.rect(lg, PALETA[6], r)
