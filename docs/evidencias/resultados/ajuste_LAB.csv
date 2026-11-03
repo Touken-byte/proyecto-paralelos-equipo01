@@ -1,0 +1,6 @@
+equipo,caso,f_amdahl,sp_max_teorico,rmse
+LAB,Autómata N=512,0.0893,11.2,0.5126
+LAB,Autómata N=2048,0.0571,17.51,0.8564
+LAB,Autómata N=4096,0.0575,17.39,0.8778
+LAB,Autómata N=8192,0.0782,12.79,1.0398
+LAB,"Vigía N=128, 40 sims",0.0,inf,0.1048
