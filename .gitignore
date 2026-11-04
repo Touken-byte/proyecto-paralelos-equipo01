@@ -17,3 +17,5 @@ __pycache__/
 build/
 .venv/
 build_docker/
+scripts/smoke/smoke_mpi
+scripts/smoke/smoke_omp
