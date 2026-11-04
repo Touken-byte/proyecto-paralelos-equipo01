@@ -1,0 +1,4 @@
+CONTAINER ID   NAME      CPU %     MEM USAGE / LIMIT   MEM %     NET I/O           BLOCK I/O         PIDS
+2d8a202320f5   master    0.00%     42.99MiB / 512MiB   8.40%     122kB / 66.9kB    47MB / 57.3kB     1
+aeed9429d1ad   worker1   0.00%     7.906MiB / 512MiB   1.54%     80.5kB / 42.2kB   5.15MB / 28.7kB   1
+5b87c93af0bc   worker2   0.00%     11.04MiB / 512MiB   2.16%     80.4kB / 33.4kB   8.4MB / 28.7kB    1
